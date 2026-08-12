@@ -39,6 +39,20 @@
       },
       "name": "audit-log-inbound",
       "policyType": "audit-log-inbound"
+    },
+    {
+      "handler": {
+        "export": "IpAddressRestrictionInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "allow": [
+            "$env(ALLOWED_IP_1)",
+            "$env(ALLOWED_IP_2)"
+          ]
+        }
+      },
+      "name": "ip-address-restriction-inbound",
+      "policyType": "ip-address-restriction-inbound"
     }
   ]
 }

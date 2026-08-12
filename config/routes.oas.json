@@ -913,7 +913,8 @@
           },
           "policies": {
             "inbound": [
-              "audit-log-inbound"
+              "audit-log-inbound",
+              "ip-address-restriction-inbound"
             ]
           }
         }
