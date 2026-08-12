@@ -134,11 +134,16 @@ export default async function edgegridSigningInbound(
       authDataValue,
     ].join("\t");
 
-    const signingKey = await hmacSha256(
-      new TextEncoder().encode(EDGERC_CLIENT_SECRET),
-      timestamp,
+    // The intermediate signing key is used as the *base64 text* of the first
+    // HMAC's digest (its UTF-8 bytes), not the raw binary digest - this is
+    // easy to get wrong and was the cause of an earlier "signature does not
+    // match" failure against the real API.
+    const signingKeyBase64 = toBase64(
+      await hmacSha256(new TextEncoder().encode(EDGERC_CLIENT_SECRET), timestamp),
     );
-    const signature = toBase64(await hmacSha256(signingKey, dataToSign));
+    const signature = toBase64(
+      await hmacSha256(new TextEncoder().encode(signingKeyBase64), dataToSign),
+    );
 
     const authorization = `${authDataValue}signature=${signature}`;
 
