@@ -1,0 +1,742 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "version": "0.1.0",
+    "title": "Akamai CDN MCP"
+  },
+  "paths": {
+    "/delete/url/{network}": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Fast Purge: Delete by URL",
+        "description": "Immediately removes the given URLs/ARLs from the Akamai cache on the selected network, so the next request goes to origin. This affects live production traffic immediately if network=production - confirm with the user before calling with network=production. Prefer invalidate-by-url unless you specifically need immediate removal, since delete causes a full origin fetch on next request while invalidate allows stale-while-revalidate.",
+        "operationId": "delete-by-url",
+        "tags": ["Fast Purge"],
+        "parameters": [
+          {
+            "name": "network",
+            "in": "path",
+            "required": true,
+            "description": "Network to purge on. Defaults to production.",
+            "schema": {
+              "type": "string",
+              "enum": ["staging", "production"],
+              "default": "production"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["objects"],
+                "properties": {
+                  "objects": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "List of URLs or ARLs to delete from cache, e.g. https://www.example.com/path/file.js"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Purge request accepted.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/ccu/v3"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-ccu-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/invalidate/url/{network}": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Fast Purge: Invalidate by URL",
+        "description": "Marks the given URLs/ARLs as stale on the selected network so Akamai re-validates them against origin on next request, rather than deleting them outright. Prefer this over delete-by-url unless you specifically need immediate removal. This affects live production traffic immediately if network=production - confirm with the user before calling with network=production.",
+        "operationId": "invalidate-by-url",
+        "tags": ["Fast Purge"],
+        "parameters": [
+          {
+            "name": "network",
+            "in": "path",
+            "required": true,
+            "description": "Network to invalidate on. Defaults to production.",
+            "schema": {
+              "type": "string",
+              "enum": ["staging", "production"],
+              "default": "production"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["objects"],
+                "properties": {
+                  "objects": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "List of URLs or ARLs to invalidate, e.g. https://www.example.com/path/file.js"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Purge request accepted.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/ccu/v3"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-ccu-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/rate-limit-status/{purge-type}": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "post": {
+        "summary": "Fast Purge: Check Rate-Limit Status",
+        "description": "Returns the account's remaining Fast Purge request/object rate-limit tokens for the given purge-object type. This does NOT check the status of a specific past purge by ID - Akamai's Fast Purge v3 API has no such endpoint, and purge completion isn't independently queryable. Use the estimatedSeconds field returned by delete-by-url/invalidate-by-url itself as the completion estimate.",
+        "operationId": "check-purge-rate-limit-status",
+        "tags": ["Fast Purge"],
+        "parameters": [
+          {
+            "name": "purge-type",
+            "in": "path",
+            "required": true,
+            "description": "Which purge object type's rate-limit bucket to check.",
+            "schema": {
+              "type": "string",
+              "enum": ["cpcode", "tag", "url"]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Rate limit status.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/ccu/v3"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-ccu-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/contracts": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Property Manager: List Contracts",
+        "description": "Read-only. Lists the contracts available to the current credentials, used to discover valid contractId values for the other Property Manager tools.",
+        "operationId": "get-contracts",
+        "tags": ["Property Manager"],
+        "parameters": [
+          {
+            "name": "PAPI-Use-Prefixes",
+            "in": "header",
+            "required": true,
+            "description": "Whether returned IDs include their ctr_/grp_/prp_ prefixes.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of contracts.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/papi/v1"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-papi-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/groups": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Property Manager: List Groups",
+        "description": "Read-only. Lists the groups available to the current credentials, used to discover valid groupId values for the other Property Manager tools.",
+        "operationId": "get-groups",
+        "tags": ["Property Manager"],
+        "parameters": [
+          {
+            "name": "PAPI-Use-Prefixes",
+            "in": "header",
+            "required": true,
+            "description": "Whether returned IDs include their ctr_/grp_/prp_ prefixes.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of groups.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/papi/v1"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-papi-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/properties": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Property Manager: List Properties",
+        "description": "Read-only. Lists the properties within the given contract and group.",
+        "operationId": "get-properties",
+        "tags": ["Property Manager"],
+        "parameters": [
+          {
+            "name": "contractId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "groupId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "PAPI-Use-Prefixes",
+            "in": "header",
+            "required": true,
+            "description": "Whether returned IDs include their ctr_/grp_/prp_ prefixes.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of properties.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/papi/v1"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-papi-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/properties/{propertyId}": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Property Manager: Get Property",
+        "description": "Read-only. Returns metadata for a specific property (latest/production/staging version pointers, etc).",
+        "operationId": "get-property",
+        "tags": ["Property Manager"],
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "contractId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "groupId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "PAPI-Use-Prefixes",
+            "in": "header",
+            "required": true,
+            "description": "Whether returned IDs include their ctr_/grp_/prp_ prefixes.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Property details.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/papi/v1"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-papi-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/properties/{propertyId}/versions": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Property Manager: List Property Versions",
+        "description": "Read-only. Lists all versions created for a given property.",
+        "operationId": "get-property-versions",
+        "tags": ["Property Manager"],
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "contractId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "groupId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "PAPI-Use-Prefixes",
+            "in": "header",
+            "required": true,
+            "description": "Whether returned IDs include their ctr_/grp_/prp_ prefixes.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of property versions.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/papi/v1"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-papi-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/properties/{propertyId}/versions/{propertyVersion}/rules": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Property Manager: Get Rule Tree",
+        "description": "Read-only. Returns the rule tree for a specific property version - the behaviors/criteria that define the property's caching and delivery configuration. Large/deeply nested response.",
+        "operationId": "get-property-version-rules",
+        "tags": ["Property Manager"],
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "propertyVersion",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "contractId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "groupId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "PAPI-Use-Prefixes",
+            "in": "header",
+            "required": true,
+            "description": "Whether returned IDs include their ctr_/grp_/prp_ prefixes.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rule tree.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/papi/v1"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-papi-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/properties/{propertyId}/activations": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Property Manager: List Activations",
+        "description": "Read-only. Lists the activation history for a property, including current deployment status on staging and production networks.",
+        "operationId": "get-property-activations",
+        "tags": ["Property Manager"],
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "contractId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "groupId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "PAPI-Use-Prefixes",
+            "in": "header",
+            "required": true,
+            "description": "Whether returned IDs include their ctr_/grp_/prp_ prefixes.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of activations.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/papi/v1"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-papi-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/properties/{propertyId}/activations/{activationId}": {
+      "x-zuplo-path": {
+        "pathMode": "open-api"
+      },
+      "get": {
+        "summary": "Property Manager: Get Activation",
+        "description": "Read-only. Returns detailed information about a specific activation event.",
+        "operationId": "get-property-activation",
+        "tags": ["Property Manager"],
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "activationId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "contractId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "groupId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "PAPI-Use-Prefixes",
+            "in": "header",
+            "required": true,
+            "description": "Whether returned IDs include their ctr_/grp_/prp_ prefixes.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activation details.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        },
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "urlForwardHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "baseUrl": "https://${env.EDGERC_HOST}/papi/v1"
+            }
+          },
+          "policies": {
+            "inbound": ["edgegrid-signing-papi-inbound"]
+          },
+          "mcp": {
+            "type": "tool"
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "summary": "Akamai CDN MCP Server",
+        "description": "Exposes Akamai Fast Purge (CCU v3) and Property Manager (PAPI v1, read-only) as MCP tools. Credentials are configured server-side via Zuplo environment variables; MCP clients need no Akamai credentials of their own.",
+        "operationId": "akamai-cdn-mcp-server",
+        "x-zuplo-route": {
+          "corsPolicy": "none",
+          "handler": {
+            "export": "mcpServerHandler",
+            "module": "$import(@zuplo/runtime)",
+            "options": {
+              "name": "akamai-cdn-mcp",
+              "version": "0.1.0",
+              "operations": [
+                { "file": "./config/routes.oas.json", "id": "delete-by-url" },
+                { "file": "./config/routes.oas.json", "id": "invalidate-by-url" },
+                { "file": "./config/routes.oas.json", "id": "check-purge-rate-limit-status" },
+                { "file": "./config/routes.oas.json", "id": "get-contracts" },
+                { "file": "./config/routes.oas.json", "id": "get-groups" },
+                { "file": "./config/routes.oas.json", "id": "get-properties" },
+                { "file": "./config/routes.oas.json", "id": "get-property" },
+                { "file": "./config/routes.oas.json", "id": "get-property-versions" },
+                { "file": "./config/routes.oas.json", "id": "get-property-version-rules" },
+                { "file": "./config/routes.oas.json", "id": "get-property-activations" },
+                { "file": "./config/routes.oas.json", "id": "get-property-activation" }
+              ]
+            }
+          },
+          "policies": {
+            "inbound": []
+          }
+        }
+      }
+    }
+  }
+}

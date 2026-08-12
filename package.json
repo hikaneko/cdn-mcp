@@ -1,0 +1,19 @@
+{
+  "name": "akamai-cdn-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "zuplo dev",
+    "test": "zuplo test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zuplo/otel": "^7",
+    "zuplo": "^7"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5"
+  }
+}

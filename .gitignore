@@ -1,0 +1,14 @@
+.zuplo/
+.zuplo-local/
+.cache/
+dist/
+node_modules/
+.env
+.env.zuplo
+
+# OS Stuff
+
+.DS_Store
+
+# Local-only agent instructions, not published to the (public) repo
+CLAUDE.md
