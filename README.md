@@ -82,7 +82,7 @@ All routing lives in `config/routes.oas.json`. To expose another CCU or PAPI ope
 
 See Akamai's [CCU v3](https://techdocs.akamai.com/purge-cache/reference/api) and [PAPI v1](https://techdocs.akamai.com/property-mgr/reference/api-summary) API references for other available operations.
 
-## Guardrails not (yet) implemented
+## Guardrails
 
+- **`/mcp` is restricted by source IP.** The `ip-address-restriction-inbound` policy (added via the Zuplo portal) allows only `ALLOWED_IP_1`/`ALLOWED_IP_2` to reach `/mcp` — set these as env vars for the environment the same way as the `EDGERC_*` secrets. Requests from any other IP are rejected before reaching the EdgeGrid signing policy.
 - **No confirm-before-purge policy.** Tool descriptions ask the calling model to confirm destructive purges with the user, but nothing server-side enforces it. A sibling project's equivalent guardrail passed every direct/local test but broke unexplainably through Claude Desktop, so this is deferred until EdgeGrid signing itself has been verified stable end-to-end in production.
-- **No IP address restriction or other inbound/outbound policy on `/mcp`.** Out of scope for now per an explicit decision; revisit if the deployed URL needs to be shared narrowly.
