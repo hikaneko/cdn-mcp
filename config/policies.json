@@ -21,6 +21,24 @@
           "apiPathPrefix": "/papi/v1"
         }
       }
+    },
+    {
+      "handler": {
+        "export": "AuditLogInboundPolicy",
+        "module": "$import(@zuplo/runtime)",
+        "options": {
+          "eventTypeBase": "com.akamai.cdn",
+          "include": {
+            "geolocation": true,
+            "ipAddress": true,
+            "queryParams": true,
+            "user": true
+          },
+          "samplingRate": 1
+        }
+      },
+      "name": "audit-log-inbound",
+      "policyType": "audit-log-inbound"
     }
   ]
 }
